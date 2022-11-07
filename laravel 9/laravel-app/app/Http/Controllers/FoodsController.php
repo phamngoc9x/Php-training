@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Food;
 use App\Models\Category;
+use App\Rules\Uppercase;
 
 class FoodsController extends Controller
 {
@@ -20,19 +21,54 @@ class FoodsController extends Controller
 
     public function create() {
         // insert new food
-        return view('foods.create');
+        $categories = Category::all();
+        return view('foods.create')->with('categories', $categories);
     }
 
     public function store( Request $request) {
+        // dd($request->all());
+
+        // dd($request-> file('image')->guessClientExtension()); //igp, jpeg
+        // dd($request-> file('image')->getMimeType()); //igp, jpeg
+        // dd($request-> file('image')->getSize()); //igp, jpeg
+        // dd($request-> file('image')->getError()); //igp, jpeg
+
+        $request -> validate([
+            'name' => 'required',
+            'count' => 'required|integer|min:0|max:200',
+            'description' => 'required',
+            'image' => 'required|mimes:jpg,png,jpeg|max:5048'
+            
+        ]);
+
+        $generatedImageName = 'image'.time().'-'
+            .$request->name.'.'
+            .$request->image->extension();
+
+        // dd($generatedImageName);
+
+        $request->image->move(public_path('images'), $generatedImageName);
+
         // dd('this is store function');
         // $food = new Food();
         // $food -> name = $request -> input('name');
         // $food -> count = $request -> input('count');
         // $food -> description = $request -> input('description');
+
+        // dd($request);
+        // $request -> validated();
+        // $request -> validate(([
+        //     // 'name' => 'required|unique:foods',
+        //     'name' => new Uppercase,
+        //     'count' => 'required|integer|min:0|max:1000',
+        //     'category_id' => 'required'
+        // ]));
         $food = Food::create([
             'name' => $request -> input('name'),
             'count' => $request -> input('count'),
-            'description' => $request -> input('description')
+            'description' => $request -> input('description'),
+            'category_id' => $request -> input('category_id'),
+            'image_path' => $generatedImageName
         ]);
 
         $food -> save();
@@ -49,26 +85,45 @@ class FoodsController extends Controller
 
         $food->category = $category;
 
-        // dd($food);
+        // dd($category);
         return view('foods.show') -> with('food',  $food);
     }
 
     public function edit($id) {
         // insert new food
+        $categories = Category::all();
         $food = Food::find($id);
 
         // dd($food);
-        return view('foods.edit') -> with('food',  $food);
+        return view('foods.edit') -> with('food',  $food)->with('categories', $categories);
     }
 
 
     public function update(Request $request, $id) {
         // update food
+        // $request -> validated();
+
+        $request -> validate([
+            'name' => 'required',
+            'count' => 'required|integer|min:0|max:200',
+            'description' => 'required',
+            'image' => 'required|mimes:jpg,png,jpeg|max:5048'
+            
+        ]);
+
+        $generatedImageName = 'image'.time().'-'
+            .$request->name.'.'
+            .$request->image->extension();
+
+        $request->image->move(public_path('images'), $generatedImageName);
+
         $food = Food::where('id', $id)
             ->update([
             'name' => $request -> input('name'),
             'count' => $request -> input('count'),
-            'description' => $request -> input('description')
+            'description' => $request -> input('description'),
+            'category_id' => $request -> input('category_id'),
+            'image_path' => $generatedImageName
         ]);
         
         return redirect('/foods');
